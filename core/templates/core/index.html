@@ -1,0 +1,92 @@
+{% extends 'core/base.html' %}
+{% load bulma_tags %}
+
+{% block content %}
+<h1 class="title">Upload Your Photos</h1>
+<div class="column box" style="border: thin solid black;">
+    <form id="upload" method="post" action="{% url 'upload' %}" enctype="multipart/form-data">
+        {{form | bulma}}
+        {% csrf_token %}
+        <div class="field">
+            <button type="submit" class="button is-success">Save</button>
+        </div>
+    </form>
+</div>
+<hr>
+<h1 class="title">View Photos</h1>
+<div class="columns is-multiline" id="photos">
+    {% for photo in photos %}
+    <div class="column is-one-third item">
+        <div class="card">
+            <div class="card-image">
+                <figure class="image">
+                    <img src="{{ photo.file.url }}" alt="{{ photo }}" title="{{ photo }}">
+                </figure>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<div class="pagination">
+    <span class="step-links">
+        {% if photos.has_previous %}
+        <a href="?page=1">&laquo; first</a>
+        <a href="?page={{ photos.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ photos.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if photos.has_next %}
+        <a href="?page={{ photos.next_page_number }}" class="next">next</a>
+        <a href="?page={{ photos.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+{% endblock content %}
+
+
+{% block scripts %}
+<script>
+    $(document).ready(function () {
+        $('#upload').ajaxForm({
+            dataType: 'json',
+            success: processPhoto
+        });
+
+        function processPhoto(photo) {
+            $('#upload').clearForm();
+            const fileName = document.querySelector('.file-cta .file-label');
+            fileName.textContent = "Choose a file…"
+            $('#photos').prepend(
+                `
+                <div class="column is-one-third item">
+                    <div class="card">
+                        <div class="card-image">
+                            <figure class="image">
+                                <img src="${photo.file}" alt="${photo.name}" title="${photo.name}">
+                            </figure>
+                        </div>
+                    </div>
+                </div>
+                `
+            )
+        }
+    });
+    let ias = new InfiniteAjaxScroll('#photos', {
+        logger: false,
+        item: '.item',
+        next: '.next',
+        pagination: '.pagination'
+    });
+    const fileInput = document.querySelector('input[type=file]');
+    fileInput.onchange = () => {
+        if (fileInput.files.length > 0) {
+            const fileName = document.querySelector('.file-cta .file-label');
+            fileName.textContent = fileInput.files[0].name;
+        }
+    }
+</script>
+{% endblock scripts %}
